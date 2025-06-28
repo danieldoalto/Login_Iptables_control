@@ -1,0 +1,375 @@
+"""
+Rotas de autenticação
+"""
+import logging
+from flask import Blueprint, render_template, session, request, redirect, url_for, flash, current_app, abort
+from app import limiter
+from app.models import User, UserSession, FirewallRule, SystemLog, db
+from app.forms import LoginForm, RegistrationForm, ResendConfirmationForm
+from app.email import send_confirmation_email, send_welcome_email, send_login_notification
+from datetime import datetime
+
+logger = logging.getLogger(__name__)
+
+bp = Blueprint('auth', __name__)
+
+@bp.route('/register', methods=['GET', 'POST'])
+@limiter.limit("5 per minute")
+def register():
+    """Registro de novo usuário"""
+    form = RegistrationForm()
+    
+    if form.validate_on_submit():
+        try:
+            # Criar novo usuário
+            user = User(email=form.email.data.lower())
+            user.set_password(form.password.data)
+            user.generate_confirmation_token()
+            
+            db.session.add(user)
+            db.session.commit()
+            
+            # Enviar email de confirmação
+            send_confirmation_email(user)
+            
+            # Log do registro
+            SystemLog.log(
+                level='INFO',
+                message=f'Novo usuário registrado: {user.email}',
+                module='auth_register',
+                user_id=user.id,
+                ip_address=request.remote_addr
+            )
+            
+            flash('Registro realizado com sucesso! Verifique seu email para confirmar sua conta.', 'success')
+            return redirect(url_for('auth.login'))
+            
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Erro no registro: {str(e)}")
+            flash('Erro interno. Tente novamente.', 'error')
+    
+    return render_template('auth/register.html', form=form)
+
+@bp.route('/login', methods=['GET', 'POST'])
+@limiter.limit("10 per minute")
+def login():
+    """Login do usuário"""
+    form = LoginForm()
+    
+    if form.validate_on_submit():
+        user = User.query.filter_by(email=form.email.data.lower()).first()
+        
+        if user and user.check_password(form.password.data):
+            # Verificar se usuário está bloqueado
+            if user.is_locked():
+                flash('Conta temporariamente bloqueada devido a múltiplas tentativas de login. Tente novamente mais tarde.', 'error')
+                return render_template('auth/login.html', form=form)
+            
+            # Verificar se email foi confirmado
+            if not user.confirmed:
+                flash('Você precisa confirmar seu email antes de fazer login.', 'warning')
+                return redirect(url_for('auth.resend_confirmation'))
+            
+            try:
+                # Obter IP do cliente
+                client_ip = request.remote_addr
+                user_agent = request.headers.get('User-Agent', '')
+                
+                # Criar sessão
+                user_session = UserSession(
+                    user_id=user.id,
+                    ip_address=client_ip,
+                    user_agent=user_agent
+                )
+                db.session.add(user_session)
+                
+                # Adicionar IP ao firewall
+                firewall_manager = current_app.firewall_manager
+                if firewall_manager.add_ip_to_firewall(client_ip):
+                    # Criar regra no banco
+                    firewall_rule = FirewallRule(
+                        ip_address=client_ip,
+                        user_id=user.id,
+                        session_id=user_session.id,
+                        iptables_rule_added=True
+                    )
+                    db.session.add(firewall_rule)
+                    
+                    # Atualizar informações do usuário
+                    user.record_successful_login()
+                    
+                    # Commit da transação
+                    db.session.commit()
+                    
+                    # Configurar sessão Flask
+                    session['user_id'] = user.id
+                    session['session_token'] = user_session.session_token
+                    session['user_email'] = user.email
+                    session.permanent = True
+                    
+                    # Log do login
+                    SystemLog.log(
+                        level='INFO',
+                        message=f'Login bem-sucedido - IP: {client_ip}',
+                        module='auth_login',
+                        user_id=user.id,
+                        ip_address=client_ip
+                    )
+                    
+                    # Enviar notificação por email
+                    send_login_notification(user, client_ip, user_agent)
+                    
+                    flash(f'Login realizado com sucesso! Seu IP {client_ip} foi liberado no firewall.', 'success')
+                    return redirect(url_for('main.dashboard'))
+                else:
+                    # Falha ao adicionar no firewall
+                    db.session.rollback()
+                    flash('Erro ao configurar acesso no firewall. Tente novamente.', 'error')
+                    
+                    SystemLog.log(
+                        level='ERROR',
+                        message=f'Falha ao adicionar IP {client_ip} no firewall durante login',
+                        module='auth_login',
+                        user_id=user.id,
+                        ip_address=client_ip
+                    )
+                    
+            except Exception as e:
+                db.session.rollback()
+                logger.error(f"Erro no login: {str(e)}")
+                flash('Erro interno durante login. Tente novamente.', 'error')
+                
+                SystemLog.log(
+                    level='ERROR',
+                    message=f'Erro interno no login: {str(e)}',
+                    module='auth_login',
+                    user_id=user.id if user else None,
+                    ip_address=request.remote_addr
+                )
+        else:
+            # Login falhou
+            if user:
+                user.record_failed_login()
+                db.session.commit()
+                
+                SystemLog.log(
+                    level='WARNING',
+                    message=f'Tentativa de login falhada - email: {form.email.data}',
+                    module='auth_login',
+                    user_id=user.id,
+                    ip_address=request.remote_addr
+                )
+            
+            flash('Email ou senha incorretos.', 'error')
+    
+    return render_template('auth/login.html', form=form)
+
+@bp.route('/logout')
+def logout():
+    """Logout do usuário"""
+    if 'user_id' in session and 'session_token' in session:
+        try:
+            # Buscar sessão atual
+            user_session = UserSession.query.filter_by(
+                user_id=session['user_id'],
+                session_token=session['session_token'],
+                is_active=True
+            ).first()
+            
+            if user_session:
+                # Remover IP do firewall
+                firewall_manager = current_app.firewall_manager
+                firewall_manager.remove_ip_from_firewall(user_session.ip_address)
+                
+                # Encerrar sessão
+                user_session.end_session()
+                
+                # Marcar regra do firewall como removida
+                firewall_rule = FirewallRule.query.filter_by(
+                    session_id=user_session.id,
+                    is_active=True
+                ).first()
+                
+                if firewall_rule:
+                    firewall_rule.mark_as_removed()
+                
+                db.session.commit()
+                
+                # Log do logout
+                SystemLog.log(
+                    level='INFO',
+                    message=f'Logout realizado - IP: {user_session.ip_address}',
+                    module='auth_logout',
+                    user_id=user_session.user_id,
+                    ip_address=user_session.ip_address
+                )
+                
+                flash(f'Logout realizado com sucesso! Seu IP {user_session.ip_address} foi removido do firewall.', 'success')
+            
+        except Exception as e:
+            logger.error(f"Erro no logout: {str(e)}")
+            db.session.rollback()
+            flash('Erro durante logout, mas você foi desconectado.', 'warning')
+    
+    # Limpar sessão
+    session.clear()
+    return redirect(url_for('main.index'))
+
+@bp.route('/confirm/<token>')
+def confirm_email(token):
+    """Confirma email do usuário"""
+    user = User.query.filter_by(confirmation_token=token).first()
+    
+    if not user:
+        flash('Link de confirmação inválido.', 'error')
+        return redirect(url_for('main.index'))
+    
+    if user.confirmed:
+        flash('Sua conta já foi confirmada.', 'info')
+        return redirect(url_for('auth.login'))
+    
+    if not user.is_confirmation_token_valid():
+        flash('Link de confirmação expirado. Solicite um novo link.', 'error')
+        return redirect(url_for('auth.resend_confirmation'))
+    
+    try:
+        # Confirmar email
+        user.confirm_email()
+        db.session.commit()
+        
+        # Enviar email de boas-vindas
+        send_welcome_email(user)
+        
+        # Log da confirmação
+        SystemLog.log(
+            level='INFO',
+            message=f'Email confirmado: {user.email}',
+            module='auth_confirm',
+            user_id=user.id,
+            ip_address=request.remote_addr
+        )
+        
+        flash('Email confirmado com sucesso! Agora você pode fazer login.', 'success')
+        return redirect(url_for('auth.login'))
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro na confirmação de email: {str(e)}")
+        flash('Erro interno. Tente novamente.', 'error')
+        return redirect(url_for('main.index'))
+
+@bp.route('/resend-confirmation', methods=['GET', 'POST'])
+@limiter.limit("3 per minute")
+def resend_confirmation():
+    """Reenviar confirmação de email"""
+    form = ResendConfirmationForm()
+    
+    if form.validate_on_submit():
+        user = User.query.filter_by(email=form.email.data.lower()).first()
+        
+        if user and not user.confirmed:
+            try:
+                # Gerar novo token
+                user.generate_confirmation_token()
+                db.session.commit()
+                
+                # Enviar email
+                send_confirmation_email(user)
+                
+                # Log do reenvio
+                SystemLog.log(
+                    level='INFO',
+                    message=f'Confirmação reenviada para: {user.email}',
+                    module='auth_resend',
+                    user_id=user.id,
+                    ip_address=request.remote_addr
+                )
+                
+                flash('Nova confirmação enviada para seu email.', 'success')
+                return redirect(url_for('auth.login'))
+                
+            except Exception as e:
+                db.session.rollback()
+                logger.error(f"Erro ao reenviar confirmação: {str(e)}")
+                flash('Erro interno. Tente novamente.', 'error')
+    
+    return render_template('auth/resend_confirmation.html', form=form)
+
+@bp.route('/account')
+def account():
+    """Página da conta do usuário"""
+    if 'user_id' not in session:
+        flash('Você precisa fazer login para acessar esta página.', 'warning')
+        return redirect(url_for('auth.login'))
+    
+    user = User.query.get(session['user_id'])
+    if not user:
+        session.clear()
+        flash('Sessão inválida. Faça login novamente.', 'error')
+        return redirect(url_for('auth.login'))
+    
+    # Buscar sessões do usuário
+    user_sessions = UserSession.query.filter_by(
+        user_id=user.id
+    ).order_by(UserSession.created_at.desc()).limit(20).all()
+    
+    return render_template('auth/account.html', user=user, user_sessions=user_sessions)
+
+@bp.route('/end-session/<int:session_id>')
+def end_session(session_id):
+    """Encerra uma sessão específica"""
+    if 'user_id' not in session:
+        flash('Você precisa fazer login para acessar esta página.', 'warning')
+        return redirect(url_for('auth.login'))
+    
+    user_session = UserSession.query.filter_by(
+        id=session_id,
+        user_id=session['user_id'],
+        is_active=True
+    ).first()
+    
+    if not user_session:
+        flash('Sessão não encontrada.', 'error')
+        return redirect(url_for('auth.account'))
+    
+    try:
+        # Se for a sessão atual, fazer logout completo
+        if user_session.session_token == session.get('session_token'):
+            return redirect(url_for('auth.logout'))
+        
+        # Remover IP do firewall
+        firewall_manager = current_app.firewall_manager
+        firewall_manager.remove_ip_from_firewall(user_session.ip_address)
+        
+        # Encerrar sessão
+        user_session.end_session()
+        
+        # Marcar regra do firewall como removida
+        firewall_rule = FirewallRule.query.filter_by(
+            session_id=user_session.id,
+            is_active=True
+        ).first()
+        
+        if firewall_rule:
+            firewall_rule.mark_as_removed()
+        
+        db.session.commit()
+        
+        # Log da ação
+        SystemLog.log(
+            level='INFO',
+            message=f'Sessão encerrada manualmente - IP: {user_session.ip_address}',
+            module='auth_end_session',
+            user_id=user_session.user_id,
+            ip_address=user_session.ip_address
+        )
+        
+        flash(f'Sessão encerrada com sucesso! IP {user_session.ip_address} removido do firewall.', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao encerrar sessão: {str(e)}")
+        flash('Erro ao encerrar sessão.', 'error')
+    
+    return redirect(url_for('auth.account'))

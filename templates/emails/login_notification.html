@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Detectado</title>
+</head>
+<body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
+    <div style="background-color: #ffffff; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+        <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #856404; margin: 0; font-size: 28px;">🔐 Login Detectado</h1>
+        </div>
+        
+        <p style="color: #555; font-size: 16px; line-height: 1.6;">Olá!</p>
+        
+        <p style="color: #555; font-size: 16px; line-height: 1.6;">
+            Detectamos um login em sua conta do <strong>{{ app_name }}</strong>.
+        </p>
+        
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 25px 0;">
+            <h3 style="color: #333; margin-top: 0; margin-bottom: 15px;">📊 Detalhes do Login:</h3>
+            <ul style="color: #555; line-height: 1.8; margin: 0; padding-left: 20px; list-style: none;">
+                <li style="margin: 8px 0;"><strong>📅 Data e hora:</strong> {{ login_time }}</li>
+                <li style="margin: 8px 0;"><strong>🌐 Endereço IP:</strong> {{ ip_address }}</li>
+                <li style="margin: 8px 0;"><strong>💻 Navegador:</strong> {{ user_agent }}</li>
+            </ul>
+        </div>
+        
+        <div style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #28a745; margin: 20px 0;">
+            <p style="margin: 0; color: #495057; font-size: 14px;">
+                <strong>✅ Se este login foi feito por você:</strong> Pode ignorar este email com segurança.
+            </p>
+        </div>
+        
+        <div style="background-color: #f8d7da; padding: 15px; border-radius: 8px; border-left: 4px solid #dc3545; margin: 20px 0;">
+            <p style="margin: 0; color: #721c24; font-size: 14px;">
+                <strong>⚠️ Se você NÃO fez este login:</strong> Entre em contato conosco imediatamente 
+                através do email <strong>{{ admin_email }}</strong>.
+            </p>
+        </div>
+        
+        <div style="background-color: #e2e3e5; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <p style="margin: 0; color: #495057; font-size: 14px;">
+                <strong>🔒 Dica de Segurança:</strong> Sempre faça logout quando terminar de usar o sistema 
+                e nunca compartilhe suas credenciais.
+            </p>
+        </div>
+        
+        <hr style="margin: 40px 0; border: none; border-top: 1px solid #eee;">
+        
+        <div style="margin-top: 30px; text-align: center;">
+            <p style="color: #999; font-size: 12px; margin: 0;">
+                Esta é uma notificação automática de segurança.<br>
+                <strong>Equipe {{ app_name }}</strong>
+            </p>
+        </div>
+    </div>
+</body>
+</html> 

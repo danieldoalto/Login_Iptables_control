@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirme seu Email</title>
+</head>
+<body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
+    <div style="background-color: #ffffff; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+        <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #333; margin: 0; font-size: 28px;">Bem-vindo ao {{ app_name }}!</h1>
+        </div>
+        
+        <p style="color: #555; font-size: 16px; line-height: 1.6;">Olá!</p>
+        
+        <p style="color: #555; font-size: 16px; line-height: 1.6;">
+            Obrigado por se registrar em nosso sistema. Para ativar sua conta e começar a usar nossos serviços, 
+            você precisa confirmar seu endereço de email.
+        </p>
+        
+        <div style="text-align: center; margin: 40px 0;">
+            <a href="{{ confirm_url }}" 
+               style="background-color: #007bff; color: white; padding: 15px 40px; 
+                      text-decoration: none; border-radius: 8px; display: inline-block; font-size: 16px; font-weight: bold;">
+                Confirmar Email
+            </a>
+        </div>
+        
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 30px 0;">
+            <p style="margin: 0; color: #666; font-size: 14px;">
+                <strong>⚠️ Importante:</strong> Este link é válido por apenas 1 hora. 
+                Se expirar, você precisará solicitar um novo link de confirmação.
+            </p>
+        </div>
+        
+        <p style="color: #666; font-size: 14px; line-height: 1.5;">
+            Se você não conseguir clicar no botão, copie e cole este link em seu navegador:<br>
+            <a href="{{ confirm_url }}" style="color: #007bff; word-break: break-all;">{{ confirm_url }}</a>
+        </p>
+        
+        <hr style="margin: 40px 0; border: none; border-top: 1px solid #eee;">
+        
+        <div style="background-color: #fff3cd; padding: 15px; border-radius: 8px; border-left: 4px solid #ffc107;">
+            <p style="margin: 0; color: #856404; font-size: 14px;">
+                <strong>🔒 Segurança:</strong> Se você não se registrou em nosso sistema, 
+                pode ignorar este email com segurança.
+            </p>
+        </div>
+        
+        <div style="margin-top: 30px; text-align: center;">
+            <p style="color: #999; font-size: 12px; margin: 0;">
+                Atenciosamente,<br>
+                <strong>Equipe {{ app_name }}</strong>
+            </p>
+        </div>
+    </div>
+</body>
+</html> 

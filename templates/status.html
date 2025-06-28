@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Status do Sistema{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2><i class="bi bi-activity"></i> Status do Sistema</h2>
+        <p class="text-muted">Informações sobre o estado atual do sistema</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-gear"></i> Status dos Serviços</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-3">
+                    <span>Banco de Dados:</span>
+                    <span class="status-online"><i class="bi bi-check-circle"></i> {{ status.database }}</span>
+                </div>
+                <div class="d-flex justify-content-between mb-3">
+                    <span>Firewall:</span>
+                    <span class="status-online"><i class="bi bi-check-circle"></i> {{ status.firewall }}</span>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span>Última verificação:</span>
+                    <span class="text-muted">{{ status.timestamp.strftime('%d/%m/%Y %H:%M:%S') }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-graph-up"></i> Estatísticas</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6 mb-3">
+                        <h3 class="text-primary">{{ status.stats.total_users }}</h3>
+                        <small class="text-muted">Usuários</small>
+                    </div>
+                    <div class="col-6 mb-3">
+                        <h3 class="text-success">{{ status.stats.confirmed_users }}</h3>
+                        <small class="text-muted">Confirmados</small>
+                    </div>
+                    <div class="col-6">
+                        <h3 class="text-info">{{ status.stats.active_sessions }}</h3>
+                        <small class="text-muted">Sessões Ativas</small>
+                    </div>
+                    <div class="col-6">
+                        <h3 class="text-warning">{{ status.stats.total_logs }}</h3>
+                        <small class="text-muted">Logs</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-info-circle"></i> Informações do Sistema</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Configurações</h6>
+                        <ul class="list-unstyled">
+                            <li><strong>Ambiente:</strong> {{ config.FLASK_ENV or 'development' }}</li>
+                            <li><strong>Debug:</strong> {{ 'Sim' if config.DEBUG else 'Não' }}</li>
+                            <li><strong>Banco:</strong> {{ config.SQLALCHEMY_DATABASE_URI.split('/')[-1] }}</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Segurança</h6>
+                        <ul class="list-unstyled">
+                            <li><strong>CSRF:</strong> {{ 'Ativo' if config.WTF_CSRF_ENABLED else 'Inativo' }}</li>
+                            <li><strong>Rate Limiting:</strong> {{ config.RATELIMIT_DEFAULT }}</li>
+                            <li><strong>Firewall Chain:</strong> {{ config.FIREWALL_CHAIN }}</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

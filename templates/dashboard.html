@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2><i class="bi bi-speedometer2"></i> Dashboard</h2>
+        <p class="text-muted">Bem-vindo ao Sistema de Login com Firewall</p>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Status do Sistema -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-activity"></i> Status do Sistema</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Banco de Dados:</span>
+                    <span class="status-online"><i class="bi bi-check-circle"></i> Online</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Firewall:</span>
+                    <span class="status-online"><i class="bi bi-check-circle"></i> Ativo</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Email:</span>
+                    <span class="status-online"><i class="bi bi-check-circle"></i> Configurado</span>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span>Sessões Ativas:</span>
+                    <span class="badge bg-primary">{{ active_sessions|length }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Informações da Sessão -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-info-circle"></i> Sua Sessão Atual</h5>
+            </div>
+            <div class="card-body">
+                <div class="session-info">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>IP:</strong> {{ current_session.ip_address }}</p>
+                            <p><strong>Iniciada:</strong> {{ current_session.created_at.strftime('%d/%m/%Y %H:%M') }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Expira:</strong> {{ current_session.expires_at.strftime('%d/%m/%Y %H:%M') }}</p>
+                            <p><strong>Status:</strong> 
+                                {% if current_session.is_expired() %}
+                                    <span class="badge bg-danger">Expirada</span>
+                                {% else %}
+                                    <span class="badge bg-success">Ativa</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    <p><strong>Dispositivo:</strong> {{ current_session.user_agent[:100] }}...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <!-- Logs Recentes -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-journal-text"></i> Logs Recentes</h5>
+            </div>
+            <div class="card-body">
+                <div class="activity-log">
+                    {% if recent_logs %}
+                        {% for log in recent_logs %}
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div class="flex-grow-1">
+                                <small class="text-muted">{{ log.created_at.strftime('%H:%M:%S') }}</small>
+                                <div class="small">
+                                    {% if log.level == 'ERROR' %}
+                                        <span class="text-danger"><i class="bi bi-exclamation-triangle"></i></span>
+                                    {% elif log.level == 'WARNING' %}
+                                        <span class="text-warning"><i class="bi bi-exclamation-circle"></i></span>
+                                    {% else %}
+                                        <span class="text-success"><i class="bi bi-info-circle"></i></span>
+                                    {% endif %}
+                                    {{ log.message }}
+                                </div>
+                            </div>
+                            <span class="badge bg-{{ 'danger' if log.level == 'ERROR' else 'warning' if log.level == 'WARNING' else 'info' }}">{{ log.level }}</span>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted text-center">Nenhum log recente.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ações Rápidas -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-lightning"></i> Ações Rápidas</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('auth.account') }}" class="btn btn-outline-primary">
+                        <i class="bi bi-person-circle"></i> Minha Conta
+                    </a>
+                    <a href="{{ url_for('main.status') }}" class="btn btn-outline-info">
+                        <i class="bi bi-activity"></i> Status do Sistema
+                    </a>
+                    <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-danger">
+                        <i class="bi bi-box-arrow-right"></i> Sair
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

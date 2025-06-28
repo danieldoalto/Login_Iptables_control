@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}Minha Conta{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4><i class="bi bi-person-circle"></i> Informações da Conta</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Email:</strong> {{ user.email }}</p>
+                        <p><strong>Status:</strong> 
+                            {% if user.confirmed %}
+                                <span class="badge bg-success">Confirmado</span>
+                            {% else %}
+                                <span class="badge bg-warning">Pendente</span>
+                            {% endif %}
+                        </p>
+                        <p><strong>Último login:</strong> 
+                            {% if user.last_login %}
+                                {{ user.last_login.strftime('%d/%m/%Y %H:%M') }}
+                            {% else %}
+                                Nunca
+                            {% endif %}
+                        </p>
+                        <p><strong>Conta criada:</strong> {{ user.created_at.strftime('%d/%m/%Y') }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Status da conta:</strong> 
+                            {% if user.is_active %}
+                                <span class="badge bg-success">Ativa</span>
+                            {% else %}
+                                <span class="badge bg-danger">Inativa</span>
+                            {% endif %}
+                        </p>
+                        {% if user.is_locked() %}
+                            <p><strong>Bloqueada até:</strong> 
+                                <span class="badge bg-danger">{{ user.locked_until.strftime('%d/%m/%Y %H:%M') }}</span>
+                            </p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-shield-check"></i> Segurança</h5>
+            </div>
+            <div class="card-body">
+                <a href="#" class="btn btn-outline-primary btn-sm w-100 mb-2">
+                    <i class="bi bi-key"></i> Alterar Senha
+                </a>
+                <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-danger btn-sm w-100">
+                    <i class="bi bi-box-arrow-right"></i> Sair
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-activity"></i> Sessões Ativas</h5>
+            </div>
+            <div class="card-body">
+                {% if user.sessions.filter_by(is_active=True).count() > 0 %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>IP</th>
+                                    <th>Dispositivo</th>
+                                    <th>Iniciada em</th>
+                                    <th>Expira em</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for session in user.sessions.filter_by(is_active=True).all() %}
+                                <tr>
+                                    <td>{{ session.ip_address }}</td>
+                                    <td>{{ session.user_agent[:50] }}...</td>
+                                    <td>{{ session.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                                    <td>{{ session.expires_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                                    <td>
+                                        <a href="{{ url_for('auth.end_session', session_id=session.id) }}" 
+                                           class="btn btn-sm btn-outline-danger"
+                                           onclick="return confirm('Encerrar esta sessão?')">
+                                            <i class="bi bi-x-circle"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted text-center">Nenhuma sessão ativa.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

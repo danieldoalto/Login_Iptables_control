@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Reenviar Confirmação{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card card-login">
+            <div class="card-header text-center">
+                <h4><i class="bi bi-envelope-arrow-up"></i> Reenviar Confirmação</h4>
+            </div>
+            <div class="card-body">
+                <p class="text-muted text-center mb-4">
+                    Digite seu email para receber um novo link de confirmação.
+                </p>
+                
+                <form method="POST" action="{{ url_for('auth.resend_confirmation') }}">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="mb-3">
+                        {{ form.email.label(class="form-label") }}
+                        {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else "")) }}
+                        {% if form.email.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.email.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="d-grid">
+                        {{ form.submit(class="btn btn-primary") }}
+                    </div>
+                </form>
+                
+                <hr>
+                
+                <div class="text-center">
+                    <p class="mb-0">Lembrou sua senha? 
+                        <a href="{{ url_for('auth.login') }}" class="text-decoration-none">Faça login</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

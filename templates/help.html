@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Ajuda{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2><i class="bi bi-question-circle"></i> Ajuda</h2>
+        <p class="text-muted">Como usar o Sistema de Login com Firewall</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5>Como funciona</h5>
+            </div>
+            <div class="card-body">
+                <h6>1. Registro</h6>
+                <p>Para usar o sistema, você precisa criar uma conta fornecendo seu email e senha.</p>
+                
+                <h6>2. Confirmação</h6>
+                <p>Após o registro, você receberá um email de confirmação. Clique no link para ativar sua conta.</p>
+                
+                <h6>3. Login</h6>
+                <p>Faça login com suas credenciais. Seu IP será automaticamente liberado no firewall.</p>
+                
+                <h6>4. Logout</h6>
+                <p>Ao sair, seu IP será removido do firewall automaticamente.</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5>Suporte</h5>
+            </div>
+            <div class="card-body">
+                <p>Para dúvidas ou problemas:</p>
+                <ul>
+                    <li>Verifique os logs do sistema</li>
+                    <li>Consulte a documentação</li>
+                    <li>Entre em contato com o administrador</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

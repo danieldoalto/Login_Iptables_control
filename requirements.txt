@@ -1,0 +1,14 @@
+Flask==2.3.3
+Flask-SQLAlchemy==3.0.5
+Flask-Mail==0.9.1
+Flask-WTF==1.1.1
+WTForms==3.0.1
+Werkzeug==2.3.7
+itsdangerous==2.1.2
+email-validator==2.0.0
+python-dotenv==1.0.0
+cryptography==41.0.4
+gunicorn==21.2.0
+APScheduler==3.10.4
+flask-limiter==3.5.0
+bcrypt==4.0.1
