@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}Aprovação de Usuários Pendentes{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2><i class="bi bi-person-check"></i> Usuários Pendentes de Aprovação</h2>
+    <hr>
+    {% if pending_users %}
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Email</th>
+                    <th>Data de Registro</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in pending_users %}
+                <tr>
+                    <td>{{ u.email }}</td>
+                    <td>{{ u.created_at.strftime('%d/%m/%Y %H:%M') if u.created_at else '-' }}</td>
+                    <td><span class="badge bg-warning text-dark">Pendente</span></td>
+                    <td>
+                        <form method="post" style="display:inline-block">
+                            <input type="hidden" name="user_id" value="{{ u.id }}">
+                            <button type="submit" name="action" value="approve" class="btn btn-success btn-sm">
+                                <i class="bi bi-check-circle"></i> Aprovar
+                            </button>
+                        </form>
+                        <form method="post" style="display:inline-block">
+                            <input type="hidden" name="user_id" value="{{ u.id }}">
+                            <button type="submit" name="action" value="reject" class="btn btn-danger btn-sm">
+                                <i class="bi bi-x-circle"></i> Rejeitar
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info mt-4">
+        <i class="bi bi-info-circle"></i> Nenhum usuário pendente de aprovação no momento.
+    </div>
+    {% endif %}
+    <a href="{{ url_for('main.dashboard') }}" class="btn btn-secondary mt-3">
+        <i class="bi bi-arrow-left"></i> Voltar ao Dashboard
+    </a>
+</div>
+{% endblock %} 

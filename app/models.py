@@ -26,6 +26,7 @@ class User(db.Model):
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     failed_login_attempts = db.Column(db.Integer, default=0)
     locked_until = db.Column(db.DateTime)
+    status = db.Column(db.String(20), default='pending', nullable=False)  # pending, approved, rejected, inactive, blocked
     
     # Relacionamentos
     sessions = db.relationship('UserSession', backref='user', lazy='dynamic', cascade='all, delete-orphan')
@@ -89,6 +90,21 @@ class User(db.Model):
     def can_access_admin_panel(self):
         """Verifica se o usuário pode acessar o painel administrativo"""
         return self.is_admin() and self.confirmed and self.is_active
+    
+    def is_pending(self):
+        return self.status == 'pending'
+
+    def is_approved(self):
+        return self.status == 'approved'
+
+    def is_rejected(self):
+        return self.status == 'rejected'
+
+    def is_inactive(self):
+        return self.status == 'inactive'
+
+    def is_blocked(self):
+        return self.status == 'blocked'
     
     def __repr__(self):
         return f'<User {self.email} ({self.role})>'

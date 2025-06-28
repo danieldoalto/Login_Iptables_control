@@ -120,6 +120,44 @@ def terms():
     """Termos de uso"""
     return render_template('terms.html')
 
+@bp.route('/admin/pending-users', methods=['GET', 'POST'])
+def admin_pending_users():
+    """Painel admin: listar e aprovar/rejeitar usuários pendentes"""
+    if 'user_id' not in session:
+        flash('Você precisa fazer login como administrador.', 'warning')
+        return redirect(url_for('auth.login'))
+    user = User.query.get(session['user_id'])
+    if not user or not user.is_admin():
+        flash('Acesso restrito ao administrador.', 'danger')
+        return redirect(url_for('main.dashboard'))
+
+    # Aprovação/rejeição via POST
+    if request.method == 'POST':
+        action = request.form.get('action')
+        user_id = request.form.get('user_id')
+        target_user = User.query.get(user_id)
+        if not target_user or not target_user.is_pending():
+            flash('Usuário inválido ou já processado.', 'warning')
+            return redirect(url_for('main.admin_pending_users'))
+        if action == 'approve':
+            target_user.status = 'approved'
+            db.session.commit()
+            # Enviar email de confirmação
+            from app.email import send_confirmation_email
+            send_confirmation_email(target_user)
+            flash(f'Usuário {target_user.email} aprovado com sucesso!', 'success')
+        elif action == 'reject':
+            target_user.status = 'rejected'
+            db.session.commit()
+            from app.email import send_rejection_email
+            send_rejection_email(target_user)
+            flash(f'Usuário {target_user.email} rejeitado.', 'info')
+        return redirect(url_for('main.admin_pending_users'))
+
+    # Listar usuários pendentes
+    pending_users = User.query.filter_by(status='pending').all()
+    return render_template('admin/pending_users.html', user=user, pending_users=pending_users)
+
 @bp.errorhandler(404)
 def not_found_error(error):
     """Página de erro 404"""

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Novo Pedido de Registro</title>
+</head>
+<body>
+    <h2>Olá, administrador!</h2>
+    <p>Um novo pedido de registro foi realizado no <strong>{{ app_name }}</strong>.</p>
+    <ul>
+        <li><strong>Email do usuário:</strong> {{ user.email }}</li>
+        <li><strong>Data/hora:</strong> {{ user.created_at }}</li>
+    </ul>
+    <p>Acesse o painel administrativo para aprovar ou rejeitar o cadastro.</p>
+    <br>
+    <p>Atenciosamente,<br>Equipe {{ app_name }}</p>
+</body>
+</html> 

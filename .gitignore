@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.pdb
+
+# Ambiente virtual
+venv/
+ENV/
+.env
+.venv/
+
+# Banco de dados
+*.db
+instance/
+
+# Arquivos de configuração sensíveis
+.env
+*.env
+
+# Arquivos de log
+*.log
+logs/
+*.log.*
+
+# IDEs e editores
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Testes e relatórios
+htmlcov/
+.coverage
+.tox/
+.pytest_cache/
+
+# Outros
+.DS_Store
+Thumbs.db 

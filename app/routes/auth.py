@@ -6,7 +6,7 @@ from flask import Blueprint, render_template, session, request, redirect, url_fo
 from app import limiter
 from app.models import User, UserSession, FirewallRule, SystemLog, db
 from app.forms import LoginForm, RegistrationForm, ResendConfirmationForm
-from app.email import send_confirmation_email, send_welcome_email, send_login_notification
+from app.email import send_confirmation_email, send_welcome_email, send_login_notification, send_registration_received_email, send_admin_new_registration_email
 from app.logging_config import log_user_action, log_security_event, log_error
 from datetime import datetime
 
@@ -26,12 +26,15 @@ def register():
             user = User(email=form.email.data.lower())
             user.set_password(form.password.data)
             user.generate_confirmation_token()
-            
+            user.status = 'pending'  # Usuário pendente de aprovação
             db.session.add(user)
             db.session.commit()
             
-            # Enviar email de confirmação
-            send_confirmation_email(user)
+            # Enviar email para o usuário
+            send_registration_received_email(user)
+            
+            # Enviar email para o admin
+            send_admin_new_registration_email(user)
             
             # Log do registro
             log_user_action(

@@ -44,7 +44,9 @@ class Config:
     
     # Configurações de logging
     LOG_LEVEL = os.environ.get('LOG_LEVEL') or 'INFO'
-    LOG_FILE = os.environ.get('LOG_FILE') or 'firewall_login.log'
+    LOG_FILE = os.environ.get('LOG_FILE') or 'logs/firewall_login.log'
+    LOG_MAX_SIZE = os.environ.get('LOG_MAX_SIZE') or '10MB'
+    LOG_BACKUP_COUNT = int(os.environ.get('LOG_BACKUP_COUNT') or 5)
     
     # Configurações do Captcha
     CAPTCHA_ENABLED = os.environ.get('CAPTCHA_ENABLED', 'true').lower() in ['true', 'on', '1']

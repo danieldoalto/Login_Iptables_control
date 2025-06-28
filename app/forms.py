@@ -28,7 +28,6 @@ class RegistrationForm(FlaskForm):
     # Campos para verificação humana simples
     captcha_question = HiddenField()
     captcha_answer = IntegerField('Verificação Humana', validators=[
-        DataRequired(message='Resposta é obrigatória'),
         NumberRange(min=0, max=1000, message='Resposta inválida')
     ])
     
@@ -36,8 +35,10 @@ class RegistrationForm(FlaskForm):
     
     def __init__(self, *args, **kwargs):
         super(RegistrationForm, self).__init__(*args, **kwargs)
-        # Gerar pergunta matemática simples
         self.generate_captcha()
+        # Se captcha estiver desabilitado, remove validadores
+        if self.captcha_question.data == "Captcha desabilitado":
+            self.captcha_answer.validators = []
     
     def generate_captcha(self):
         """Gera pergunta matemática simples para verificação humana"""
@@ -58,6 +59,10 @@ class RegistrationForm(FlaskForm):
     
     def validate_captcha_answer(self, captcha_answer):
         """Valida resposta da verificação humana"""
+        # Pular validação se captcha estiver desabilitado
+        if self.captcha_question.data == "Captcha desabilitado":
+            return
+        
         if hasattr(self, 'correct_answer'):
             if not validate_captcha(captcha_answer.data, self.correct_answer):
                 raise ValidationError('Resposta incorreta. Tente novamente.')
@@ -78,7 +83,6 @@ class LoginForm(FlaskForm):
     # Campos para verificação humana simples
     captcha_question = HiddenField()
     captcha_answer = IntegerField('Verificação Humana', validators=[
-        DataRequired(message='Resposta é obrigatória'),
         NumberRange(min=0, max=1000, message='Resposta inválida')
     ])
     
@@ -86,8 +90,10 @@ class LoginForm(FlaskForm):
     
     def __init__(self, *args, **kwargs):
         super(LoginForm, self).__init__(*args, **kwargs)
-        # Gerar pergunta matemática simples
         self.generate_captcha()
+        # Se captcha estiver desabilitado, remove validadores
+        if self.captcha_question.data == "Captcha desabilitado":
+            self.captcha_answer.validators = []
     
     def generate_captcha(self):
         """Gera pergunta matemática simples para verificação humana"""
@@ -102,6 +108,10 @@ class LoginForm(FlaskForm):
     
     def validate_captcha_answer(self, captcha_answer):
         """Valida resposta da verificação humana"""
+        # Pular validação se captcha estiver desabilitado
+        if self.captcha_question.data == "Captcha desabilitado":
+            return
+        
         if hasattr(self, 'correct_answer'):
             if not validate_captcha(captcha_answer.data, self.correct_answer):
                 raise ValidationError('Resposta incorreta. Tente novamente.')

@@ -236,3 +236,93 @@ Equipe {current_app.config['APP_NAME']}
     except Exception as e:
         logger.error(f"❌ Erro ao preparar email de reset de senha para {user.email}: {str(e)}")
         raise
+
+def send_registration_received_email(user):
+    """Envia email ao usuário informando que o registro foi recebido e está pendente de aprovação"""
+    try:
+        logger.info(f"📧 Preparando email de registro recebido para usuário: {user.email}")
+        subject = f"[{current_app.config['APP_NAME']}] Registro recebido - Aguardando aprovação"
+        html_body = render_template('emails/registration_received.html', user=user, app_name=current_app.config['APP_NAME'])
+        text_body = f"""
+Olá, {user.email}!
+
+Recebemos seu pedido de registro no {current_app.config['APP_NAME']}.
+Seu cadastro está aguardando aprovação do administrador.
+Você receberá um email assim que for aprovado.
+
+Atenciosamente,
+Equipe {current_app.config['APP_NAME']}
+"""
+        send_email(
+            subject=subject,
+            sender=current_app.config['MAIL_DEFAULT_SENDER'],
+            recipients=[user.email],
+            text_body=text_body,
+            html_body=html_body,
+            email_type="registro recebido"
+        )
+        logger.info(f"✅ Email de registro recebido enviado para: {user.email}")
+    except Exception as e:
+        logger.error(f"❌ Erro ao enviar email de registro recebido para {user.email}: {str(e)}")
+        raise
+
+def send_admin_new_registration_email(user):
+    """Envia email ao admin informando novo pedido de registro"""
+    try:
+        logger.info(f"📧 Preparando email de notificação de novo registro para admin: {current_app.config['ADMIN_EMAIL']}")
+        subject = f"[{current_app.config['APP_NAME']}] Novo pedido de registro de usuário"
+        html_body = render_template('emails/admin_new_registration.html', user=user, app_name=current_app.config['APP_NAME'])
+        text_body = f"""
+Olá, administrador!
+
+Um novo pedido de registro foi realizado no {current_app.config['APP_NAME']}.
+
+Email do usuário: {user.email}
+Data/hora: {user.created_at}
+
+Acesse o painel administrativo para aprovar ou rejeitar o cadastro.
+
+Atenciosamente,
+Equipe {current_app.config['APP_NAME']}
+"""
+        send_email(
+            subject=subject,
+            sender=current_app.config['MAIL_DEFAULT_SENDER'],
+            recipients=[current_app.config['ADMIN_EMAIL']],
+            text_body=text_body,
+            html_body=html_body,
+            email_type="notificação admin novo registro"
+        )
+        logger.info(f"✅ Email de notificação de novo registro enviado para admin: {current_app.config['ADMIN_EMAIL']}")
+    except Exception as e:
+        logger.error(f"❌ Erro ao enviar email de notificação de novo registro para admin: {str(e)}")
+        raise
+
+def send_rejection_email(user):
+    """Envia email ao usuário informando que o cadastro foi rejeitado"""
+    try:
+        logger.info(f"📧 Preparando email de rejeição para usuário: {user.email}")
+        subject = f"[{current_app.config['APP_NAME']}] Cadastro Rejeitado"
+        html_body = render_template('emails/rejection.html', user=user, app_name=current_app.config['APP_NAME'])
+        text_body = f"""
+Olá, {user.email}!
+
+Seu pedido de cadastro no {current_app.config['APP_NAME']} foi analisado e infelizmente não foi aprovado.
+
+Se acredita que isso foi um engano, entre em contato com o administrador.
+
+Atenciosamente,
+Equipe {current_app.config['APP_NAME']}
+"""
+        send_email(
+            subject=subject,
+            sender=current_app.config['MAIL_DEFAULT_SENDER'],
+            recipients=[user.email],
+            text_body=text_body,
+            html_body=html_body,
+            email_type="rejeição"
+        )
+        logger.info(f"✅ Email de rejeição enviado para: {user.email}")
+    except Exception as e:
+        logger.error(f"❌ Erro ao enviar email de rejeição para {user.email}: {str(e)}")
+        raise

@@ -11,9 +11,6 @@ from flask_limiter.util import get_remote_address
 from config.config import config
 from dotenv import load_dotenv
 
-# Configurar logger
-logger = logging.getLogger(__name__)
-
 # Carregar variáveis de ambiente
 load_dotenv()
 
@@ -40,13 +37,14 @@ def create_app(config_name=None):
                 static_folder=static_dir)
     app.config.from_object(config[config_name])
     
-    # Logs para debug
-    logger.info(f"Template folder configurado: {app.template_folder}")
-    logger.info(f"Template folder absoluto: {os.path.abspath(app.template_folder)}")
-    logger.info(f"Template folder existe: {os.path.exists(app.template_folder)}")
+    # Configurar logging primeiro
+    from app.logging_config import setup_logging
+    setup_logging(app)
     
-    # Configurar logging
-    configure_logging(app)
+    # Logs para debug
+    app.logger.info(f"Template folder configurado: {app.template_folder}")
+    app.logger.info(f"Template folder absoluto: {os.path.abspath(app.template_folder)}")
+    app.logger.info(f"Template folder existe: {os.path.exists(app.template_folder)}")
     
     # Inicializar extensões
     from app.models import db
@@ -75,19 +73,6 @@ def create_app(config_name=None):
     app.logger.info(f'Sistema de Login com Firewall iniciado - Configuração: {config_name}')
     
     return app
-
-def configure_logging(app):
-    """Configura o sistema de logging"""
-    if not app.debug and not app.testing:
-        # Configurar logging para produção
-        file_handler = logging.FileHandler(app.config['LOG_FILE'])
-        file_handler.setFormatter(logging.Formatter(
-            '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
-        ))
-        file_handler.setLevel(getattr(logging, app.config['LOG_LEVEL']))
-        app.logger.addHandler(file_handler)
-        app.logger.setLevel(getattr(logging, app.config['LOG_LEVEL']))
-        app.logger.info('Sistema de Login com Firewall iniciado')
 
 def setup_background_tasks(app):
     """Configura tarefas em background"""
