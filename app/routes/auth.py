@@ -7,6 +7,7 @@ from app import limiter
 from app.models import User, UserSession, FirewallRule, SystemLog, db
 from app.forms import LoginForm, RegistrationForm, ResendConfirmationForm
 from app.email import send_confirmation_email, send_welcome_email, send_login_notification
+from app.logging_config import log_user_action, log_security_event, log_error
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -33,6 +34,13 @@ def register():
             send_confirmation_email(user)
             
             # Log do registro
+            log_user_action(
+                action="Registro de usuário",
+                user_id=user.id,
+                ip_address=request.remote_addr,
+                details=f"Email: {user.email}"
+            )
+            
             SystemLog.log(
                 level='INFO',
                 message=f'Novo usuário registrado: {user.email}',
@@ -46,7 +54,7 @@ def register():
             
         except Exception as e:
             db.session.rollback()
-            logger.error(f"Erro no registro: {str(e)}")
+            log_error(e, f"Erro no registro - Email: {form.email.data}")
             flash('Erro interno. Tente novamente.', 'error')
     
     return render_template('auth/register.html', form=form)
@@ -56,6 +64,7 @@ def register():
 def login():
     """Login do usuário"""
     form = LoginForm()
+    current_app.logger.info(f"Formulário validado? {form.validate_on_submit()} - Erros: {form.errors}")
     
     if form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data.lower()).first()
@@ -63,11 +72,23 @@ def login():
         if user and user.check_password(form.password.data):
             # Verificar se usuário está bloqueado
             if user.is_locked():
+                log_security_event(
+                    event_type="Tentativa de login em conta bloqueada",
+                    details=f"Email: {user.email}",
+                    ip_address=request.remote_addr,
+                    user_id=user.id
+                )
                 flash('Conta temporariamente bloqueada devido a múltiplas tentativas de login. Tente novamente mais tarde.', 'error')
                 return render_template('auth/login.html', form=form)
             
             # Verificar se email foi confirmado
             if not user.confirmed:
+                log_security_event(
+                    event_type="Tentativa de login sem confirmação de email",
+                    details=f"Email: {user.email}",
+                    ip_address=request.remote_addr,
+                    user_id=user.id
+                )
                 flash('Você precisa confirmar seu email antes de fazer login.', 'warning')
                 return redirect(url_for('auth.resend_confirmation'))
             
@@ -83,61 +104,41 @@ def login():
                     user_agent=user_agent
                 )
                 db.session.add(user_session)
-                
-                # Adicionar IP ao firewall
-                firewall_manager = current_app.firewall_manager
-                if firewall_manager.add_ip_to_firewall(client_ip):
-                    # Criar regra no banco
-                    firewall_rule = FirewallRule(
-                        ip_address=client_ip,
-                        user_id=user.id,
-                        session_id=user_session.id,
-                        iptables_rule_added=True
-                    )
-                    db.session.add(firewall_rule)
-                    
-                    # Atualizar informações do usuário
-                    user.record_successful_login()
-                    
-                    # Commit da transação
-                    db.session.commit()
-                    
-                    # Configurar sessão Flask
-                    session['user_id'] = user.id
-                    session['session_token'] = user_session.session_token
-                    session['user_email'] = user.email
-                    session.permanent = True
-                    
-                    # Log do login
-                    SystemLog.log(
-                        level='INFO',
-                        message=f'Login bem-sucedido - IP: {client_ip}',
-                        module='auth_login',
-                        user_id=user.id,
-                        ip_address=client_ip
-                    )
-                    
-                    # Enviar notificação por email
-                    send_login_notification(user, client_ip, user_agent)
-                    
-                    flash(f'Login realizado com sucesso! Seu IP {client_ip} foi liberado no firewall.', 'success')
-                    return redirect(url_for('main.dashboard'))
-                else:
-                    # Falha ao adicionar no firewall
-                    db.session.rollback()
-                    flash('Erro ao configurar acesso no firewall. Tente novamente.', 'error')
-                    
-                    SystemLog.log(
-                        level='ERROR',
-                        message=f'Falha ao adicionar IP {client_ip} no firewall durante login',
-                        module='auth_login',
-                        user_id=user.id,
-                        ip_address=client_ip
-                    )
-                    
+                db.session.commit()  # Agora user_session.id está disponível!
+
+                firewall_rule = FirewallRule(
+                    ip_address=client_ip,
+                    user_id=user.id,
+                    session_id=user_session.id,
+                    iptables_rule_added=False
+                )
+                db.session.add(firewall_rule)
+                user.record_successful_login()
+                db.session.commit()
+                session['user_id'] = user.id
+                session['session_token'] = user_session.session_token
+                session['user_email'] = user.email
+                session.permanent = True
+                log_user_action(
+                    action="Login bem-sucedido",
+                    user_id=user.id,
+                    ip_address=client_ip,
+                    details=f"User-Agent: {user_agent[:100]}"
+                )
+                SystemLog.log(
+                    level='INFO',
+                    message=f'Login bem-sucedido - IP: {client_ip}',
+                    module='auth_login',
+                    user_id=user.id,
+                    ip_address=client_ip
+                )
+                send_login_notification(user, client_ip, user_agent)
+                flash(f'Login realizado com sucesso!', 'success')
+                return redirect(url_for('main.dashboard'))
+
             except Exception as e:
                 db.session.rollback()
-                logger.error(f"Erro no login: {str(e)}")
+                log_error(e, f"Erro interno no login - Usuário: {user.id}, IP: {request.remote_addr}")
                 flash('Erro interno durante login. Tente novamente.', 'error')
                 
                 SystemLog.log(
@@ -153,11 +154,24 @@ def login():
                 user.record_failed_login()
                 db.session.commit()
                 
+                log_security_event(
+                    event_type="Tentativa de login falhada",
+                    details=f"Email: {form.email.data}",
+                    ip_address=request.remote_addr,
+                    user_id=user.id
+                )
+                
                 SystemLog.log(
                     level='WARNING',
                     message=f'Tentativa de login falhada - email: {form.email.data}',
                     module='auth_login',
                     user_id=user.id,
+                    ip_address=request.remote_addr
+                )
+            else:
+                log_security_event(
+                    event_type="Tentativa de login com email inexistente",
+                    details=f"Email: {form.email.data}",
                     ip_address=request.remote_addr
                 )
             
@@ -178,10 +192,6 @@ def logout():
             ).first()
             
             if user_session:
-                # Remover IP do firewall
-                firewall_manager = current_app.firewall_manager
-                firewall_manager.remove_ip_from_firewall(user_session.ip_address)
-                
                 # Encerrar sessão
                 user_session.end_session()
                 
@@ -197,6 +207,13 @@ def logout():
                 db.session.commit()
                 
                 # Log do logout
+                log_user_action(
+                    action="Logout",
+                    user_id=user_session.user_id,
+                    ip_address=user_session.ip_address,
+                    details="Sessão encerrada e IP removido do firewall"
+                )
+                
                 SystemLog.log(
                     level='INFO',
                     message=f'Logout realizado - IP: {user_session.ip_address}',
@@ -208,7 +225,7 @@ def logout():
                 flash(f'Logout realizado com sucesso! Seu IP {user_session.ip_address} foi removido do firewall.', 'success')
             
         except Exception as e:
-            logger.error(f"Erro no logout: {str(e)}")
+            log_error(e, f"Erro no logout - Usuário: {session.get('user_id')}")
             db.session.rollback()
             flash('Erro durante logout, mas você foi desconectado.', 'warning')
     
@@ -222,6 +239,11 @@ def confirm_email(token):
     user = User.query.filter_by(confirmation_token=token).first()
     
     if not user:
+        log_security_event(
+            event_type="Tentativa de confirmação com token inválido",
+            details=f"Token: {token[:20]}...",
+            ip_address=request.remote_addr
+        )
         flash('Link de confirmação inválido.', 'error')
         return redirect(url_for('main.index'))
     
@@ -230,6 +252,12 @@ def confirm_email(token):
         return redirect(url_for('auth.login'))
     
     if not user.is_confirmation_token_valid():
+        log_security_event(
+            event_type="Tentativa de confirmação com token expirado",
+            details=f"Email: {user.email}",
+            ip_address=request.remote_addr,
+            user_id=user.id
+        )
         flash('Link de confirmação expirado. Solicite um novo link.', 'error')
         return redirect(url_for('auth.resend_confirmation'))
     
@@ -242,6 +270,13 @@ def confirm_email(token):
         send_welcome_email(user)
         
         # Log da confirmação
+        log_user_action(
+            action="Confirmação de email",
+            user_id=user.id,
+            ip_address=request.remote_addr,
+            details=f"Email: {user.email}"
+        )
+        
         SystemLog.log(
             level='INFO',
             message=f'Email confirmado: {user.email}',
@@ -255,7 +290,7 @@ def confirm_email(token):
         
     except Exception as e:
         db.session.rollback()
-        logger.error(f"Erro na confirmação de email: {str(e)}")
+        log_error(e, f"Erro na confirmação de email - Usuário: {user.id}")
         flash('Erro interno. Tente novamente.', 'error')
         return redirect(url_for('main.index'))
 
@@ -278,6 +313,13 @@ def resend_confirmation():
                 send_confirmation_email(user)
                 
                 # Log do reenvio
+                log_user_action(
+                    action="Reenvio de confirmação",
+                    user_id=user.id,
+                    ip_address=request.remote_addr,
+                    details=f"Email: {user.email}"
+                )
+                
                 SystemLog.log(
                     level='INFO',
                     message=f'Confirmação reenviada para: {user.email}',
@@ -291,8 +333,14 @@ def resend_confirmation():
                 
             except Exception as e:
                 db.session.rollback()
-                logger.error(f"Erro ao reenviar confirmação: {str(e)}")
+                log_error(e, f"Erro ao reenviar confirmação - Usuário: {user.id}")
                 flash('Erro interno. Tente novamente.', 'error')
+        else:
+            log_security_event(
+                event_type="Tentativa de reenvio para email inexistente ou já confirmado",
+                details=f"Email: {form.email.data}",
+                ip_address=request.remote_addr
+            )
     
     return render_template('auth/resend_confirmation.html', form=form)
 
@@ -337,10 +385,6 @@ def end_session(session_id):
         # Se for a sessão atual, fazer logout completo
         if user_session.session_token == session.get('session_token'):
             return redirect(url_for('auth.logout'))
-        
-        # Remover IP do firewall
-        firewall_manager = current_app.firewall_manager
-        firewall_manager.remove_ip_from_firewall(user_session.ip_address)
         
         # Encerrar sessão
         user_session.end_session()
