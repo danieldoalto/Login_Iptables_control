@@ -77,6 +77,14 @@ usuario:
 
 ---
 
+## Correção: Captcha só aparece se habilitado
+
+- O campo de captcha no registro **só é exibido se o captcha estiver habilitado** nas configurações (`.env` ou config).
+- Se o captcha estiver desabilitado, o campo não aparece e não é validado, evitando erros como "Not a valid integer value".
+- Isso melhora a experiência do usuário e evita bloqueios indevidos no registro.
+
+---
+
 ## Estrutura de Pastas e Arquivos
 
 ```

@@ -260,6 +260,35 @@ Para dúvidas ou problemas:
 - Consulte os logs do sistema
 - Verifique a documentação
 
+## 🆕 Novidades Recentes
+
+### Card "Firewall Manager" no Dashboard do Admin
+- Novo card exclusivo para administradores: **Firewall Manager**.
+- Permite visualizar, adicionar e remover IPs liberados (whitelist) e bloqueados (blacklist) diretamente pelo dashboard.
+- Todas as ações refletem imediatamente no banco e no iptables.
+- Ative/desative o card editando o arquivo `config.yml`:
+
+```yaml
+admin:
+  sections:
+    - status_do_sistema
+    - sua_sessao_atual
+    - logs_recentes
+    - acoes_rapidas
+    - firewall_manager
+usuario:
+  sections:
+    - status_do_sistema
+    - sua_sessao_atual
+```
+
+### Captcha condicional no registro
+- O campo de captcha **só aparece no registro se estiver habilitado** nas configurações (`.env` ou config).
+- Se desabilitado, o campo não é exibido nem validado, evitando erros como "Not a valid integer value".
+
+### Backup automático do banco
+- Ao rodar o script `create_db.py`, se o banco já existir, é criado um backup automático com sufixo de data/hora (ex: `firewall_login.db.bak-YYYYMMDD-HHMMSS`).
+
 ---
 
 **⚠️ AVISO**: Este sistema manipula regras de firewall. Use apenas em ambientes controlados e teste adequadamente antes de usar em produção. 
