@@ -172,6 +172,8 @@ class FirewallRule(db.Model):
     removed_at = db.Column(db.DateTime)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     iptables_rule_added = db.Column(db.Boolean, default=False)
+    tipo = db.Column(db.String(20), default='whitelist', nullable=False)  # whitelist ou blacklist
+    chain = db.Column(db.String(50), default='WHITELIST', nullable=False)
     
     # Relacionamentos
     user = db.relationship('User', backref='firewall_rules')

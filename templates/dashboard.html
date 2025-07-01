@@ -197,6 +197,22 @@
         {% endif %}
         {# ==== FIM CARD APROVAÇÃO DE USUÁRIOS ==== #}
 
+        {# ==== INÍCIO CARD FIREWALL MANAGER ==== #}
+        {% if 'firewall_manager' in dashboard_sections and user.is_admin() %}
+        <div class="card mb-4 border-danger">
+            <div class="card-header bg-danger bg-opacity-25">
+                <h5 class="mb-0"><i class="bi bi-shield-lock"></i> Firewall Manager</h5>
+            </div>
+            <div class="card-body">
+                <p>Gerencie IPs liberados e bloqueados no firewall do sistema.</p>
+                <a href="{{ url_for('main.firewall_manager') }}" class="btn btn-danger">
+                    <i class="bi bi-shield-plus"></i> Acessar Gerenciador de Firewall
+                </a>
+            </div>
+        </div>
+        {% endif %}
+        {# ==== FIM CARD FIREWALL MANAGER ==== #}
+
     </div>
 </div>
 {% endblock %} 

@@ -326,3 +326,68 @@ Equipe {current_app.config['APP_NAME']}
     except Exception as e:
         logger.error(f"❌ Erro ao enviar email de rejeição para {user.email}: {str(e)}")
         raise
+
+def send_blacklist_email_user(user, ip_address):
+    """Envia email ao usuário informando que ele foi colocado na blacklist"""
+    try:
+        logger.info(f"📧 Preparando email de blacklist para usuário: {user.email}")
+        subject = f"[{current_app.config['APP_NAME']}] Sua conta/IP foi bloqueado (blacklist)"
+        html_body = render_template('emails/blacklist_user.html',
+                                  app_name=current_app.config['APP_NAME'],
+                                  user=user,
+                                  ip_address=ip_address)
+        text_body = f"""
+Olá!
+
+Sua conta ou IP ({ip_address}) foi bloqueado temporariamente devido a múltiplas tentativas de login incorretas.
+
+Se você acredita que isso foi um engano, entre em contato com o administrador do sistema.
+
+Atenciosamente,
+Equipe {current_app.config['APP_NAME']}
+"""
+        send_email(
+            subject=subject,
+            sender=current_app.config['MAIL_DEFAULT_SENDER'],
+            recipients=[user.email],
+            text_body=text_body,
+            html_body=html_body,
+            email_type="blacklist_user"
+        )
+        logger.info(f"✅ Email de blacklist enviado para: {user.email}")
+    except Exception as e:
+        logger.error(f"❌ Erro ao preparar email de blacklist para {user.email}: {str(e)}")
+        raise
+
+def send_blacklist_email_admin(user, ip_address):
+    """Envia email ao admin informando que um usuário/IP foi colocado na blacklist"""
+    try:
+        admin_email = current_app.config.get('ADMIN_EMAIL', 'admin@localhost')
+        logger.info(f"📧 Preparando email de blacklist para admin: {admin_email}")
+        subject = f"[{current_app.config['APP_NAME']}] Usuário/IP bloqueado (blacklist)"
+        html_body = render_template('emails/blacklist_admin.html',
+                                  app_name=current_app.config['APP_NAME'],
+                                  user=user,
+                                  ip_address=ip_address)
+        text_body = f"""
+Atenção!
+
+O usuário {user.email} e/ou o IP {ip_address} foi colocado na blacklist após múltiplas tentativas de login incorretas.
+
+Verifique se há necessidade de intervenção manual.
+
+Atenciosamente,
+Sistema {current_app.config['APP_NAME']}
+"""
+        send_email(
+            subject=subject,
+            sender=current_app.config['MAIL_DEFAULT_SENDER'],
+            recipients=[admin_email],
+            text_body=text_body,
+            html_body=html_body,
+            email_type="blacklist_admin"
+        )
+        logger.info(f"✅ Email de blacklist enviado para admin: {admin_email}")
+    except Exception as e:
+        logger.error(f"❌ Erro ao preparar email de blacklist para admin: {str(e)}")
+        raise

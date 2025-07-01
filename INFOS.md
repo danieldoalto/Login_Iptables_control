@@ -34,6 +34,49 @@ usuario:
 
 ---
 
+## Novidade: Card "Firewall Manager" no Dashboard do Admin
+
+- Agora o dashboard do administrador conta com o card **Firewall Manager**.
+- Permite visualizar todos os IPs liberados (whitelist) e bloqueados (blacklist), com informações detalhadas de cada regra (IP, tipo, usuário, data, chain).
+- Permite **adicionar** novos IPs à whitelist ou blacklist, escolhendo o tipo e a chain (opcional).
+- Permite **remover** IPs da whitelist ou blacklist, removendo também a regra correspondente do iptables.
+- Todas as ações são refletidas imediatamente no banco de dados e no firewall real (iptables), respeitando o modo simulação se o firewall estiver desativado.
+- O card só aparece para administradores e pode ser ativado/desativado no dashboard editando o `config.yml`.
+
+### Exemplo de config.yml atualizado
+
+```yaml
+admin:
+  sections:
+    - status_do_sistema
+    - sua_sessao_atual
+    - logs_recentes
+    - acoes_rapidas
+    - firewall_manager
+usuario:
+  sections:
+    - status_do_sistema
+    - sua_sessao_atual
+```
+
+### Como acessar e usar o Firewall Manager
+
+1. Faça login como administrador.
+2. No dashboard, clique em **Acessar Gerenciador de Firewall** no card "Firewall Manager".
+3. Na página do gerenciador:
+   - Veja a lista de todos os IPs ativos (liberados/bloqueados), com dados do usuário, data e tipo.
+   - Para remover um IP, clique no botão "Remover" ao lado do registro desejado.
+   - Para adicionar um novo IP, preencha o formulário na parte inferior, escolhendo o tipo (liberar/bloquear) e, se necessário, a chain.
+   - As ações são aplicadas imediatamente no banco e no iptables.
+
+### Fluxo de uso do Firewall Manager
+
+- **Adicionar IP**: Preencha o IP, selecione o tipo (liberar/bloquear) e clique em "Adicionar". O IP será registrado no banco e a regra criada no iptables.
+- **Remover IP**: Clique em "Remover" ao lado do IP desejado. O registro será marcado como removido no banco e a regra excluída do iptables.
+- **Visualização**: Todos os registros ativos aparecem em uma tabela, com destaque visual para whitelist (verde) e blacklist (vermelho).
+
+---
+
 ## Estrutura de Pastas e Arquivos
 
 ```

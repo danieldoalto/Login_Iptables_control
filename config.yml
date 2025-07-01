@@ -4,6 +4,7 @@ admin:
     - sua_sessao_atual
     - logs_recentes
     - acoes_rapidas
+    - firewall_manager
   links:
     - titulo: 'N8N'
       link: 'https://n8n.dansoft.net.br'

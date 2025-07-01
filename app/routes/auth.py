@@ -6,7 +6,7 @@ from flask import Blueprint, render_template, session, request, redirect, url_fo
 from app import limiter
 from app.models import User, UserSession, FirewallRule, SystemLog, db
 from app.forms import LoginForm, RegistrationForm, ResendConfirmationForm
-from app.email import send_confirmation_email, send_welcome_email, send_login_notification, send_registration_received_email, send_admin_new_registration_email
+from app.email import send_confirmation_email, send_welcome_email, send_login_notification, send_registration_received_email, send_admin_new_registration_email, send_blacklist_email_user, send_blacklist_email_admin
 from app.logging_config import log_user_action, log_security_event, log_error
 from datetime import datetime
 
@@ -109,13 +109,30 @@ def login():
                 db.session.add(user_session)
                 db.session.commit()  # Agora user_session.id está disponível!
 
+                # Criar regra de firewall (whitelist)
+                firewall_chain = current_app.config.get('FIREWALL_CHAIN', 'WHITELIST')
+                ipv6_raw = current_app.config.get('IPV6', 'False')
+                ipv6_enabled = str(ipv6_raw).lower() in ['true', 'on', '1', 'yes']
                 firewall_rule = FirewallRule(
                     ip_address=client_ip,
                     user_id=user.id,
                     session_id=user_session.id,
-                    iptables_rule_added=False
+                    iptables_rule_added=False,
+                    tipo='whitelist',
+                    chain=firewall_chain
                 )
                 db.session.add(firewall_rule)
+                # Se IPV6 estiver ativado e client_ip for string, registrar também para IPv6 (simulação)
+                if ipv6_enabled and isinstance(client_ip, str) and ':' in client_ip:
+                    firewall_rule_v6 = FirewallRule(
+                        ip_address=client_ip,
+                        user_id=user.id,
+                        session_id=user_session.id,
+                        iptables_rule_added=False,
+                        tipo='whitelist',
+                        chain=firewall_chain
+                    )
+                    db.session.add(firewall_rule_v6)
                 user.record_successful_login()
                 db.session.commit()
                 session['user_id'] = user.id
@@ -156,6 +173,26 @@ def login():
             if user:
                 user.record_failed_login()
                 db.session.commit()
+
+                # Se atingiu 5 tentativas, bloquear usuário e IP (exceto admin)
+                if user.failed_login_attempts >= 5 and not user.is_admin():
+                    user.status = 'blacklist'
+                    db.session.commit()
+                    # Criar regra de blacklist
+                    firewall_black_chain = current_app.config.get('FIREWALL_BLACK', 'BLACKLIST')
+                    blacklist_rule = FirewallRule(
+                        ip_address=request.remote_addr,
+                        user_id=user.id,
+                        session_id=None,
+                        iptables_rule_added=False,
+                        tipo='blacklist',
+                        chain=firewall_black_chain
+                    )
+                    db.session.add(blacklist_rule)
+                    db.session.commit()
+                    # Enviar emails
+                    send_blacklist_email_user(user, request.remote_addr)
+                    send_blacklist_email_admin(user, request.remote_addr)
                 
                 log_security_event(
                     event_type="Tentativa de login falhada",

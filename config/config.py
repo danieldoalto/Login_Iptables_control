@@ -36,8 +36,10 @@ class Config:
     RATELIMIT_DEFAULT = "100 per hour"
     
     # Configurações de firewall
-    FIREWALL_CHAIN = 'FIREWALL_LOGIN_ALLOW'
+    FIREWALL_CHAIN = os.environ.get('FIREWALL_CHAIN', 'FIREWALL_LOGIN_ALLOW')
+    FIREWALL_BLACK = os.environ.get('FIREWALL_BLACK', 'BLACKLIST')
     IPTABLES_PATH = '/sbin/iptables'
+    FIREWALL_ENABLED = os.environ.get('FIREWALL_ENABLED', 'true').lower() in ['true', 'on', '1', 'yes']
     
     # Configurações de logging
     LOG_LEVEL = os.environ.get('LOG_LEVEL') or 'INFO'

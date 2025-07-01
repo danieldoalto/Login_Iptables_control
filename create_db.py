@@ -4,6 +4,8 @@ Script simples para criar o banco de dados
 """
 import os
 import sys
+import shutil
+from datetime import datetime
 
 # Adicionar o diretório atual ao path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -28,6 +30,14 @@ def create_database():
         with app.app_context():
             print("🗄️ Criando banco de dados...")
             
+            # Backup do banco existente, se houver
+            db_path = app.config['SQLALCHEMY_DATABASE_URI'].replace('sqlite:///', '')
+            if os.path.exists(db_path):
+                timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
+                backup_path = f"{db_path}.bak-{timestamp}"
+                shutil.copy2(db_path, backup_path)
+                print(f"🛡️  Backup do banco criado em: {backup_path}")
+
             # Criar todas as tabelas
             db.create_all()
             print("✅ Tabelas criadas com sucesso!")

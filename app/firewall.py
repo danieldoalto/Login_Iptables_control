@@ -16,15 +16,20 @@ class FirewallManager:
         self.chain_name = 'FIREWALL_LOGIN_ALLOW'
         self.iptables_path = '/sbin/iptables'
         self.ip6tables_path = '/sbin/ip6tables'
+        self.enabled = True
     
     def configure(self, app):
         """Configura o gerenciador com as configurações da aplicação"""
         self.chain_name = app.config.get('FIREWALL_CHAIN', 'FIREWALL_LOGIN_ALLOW')
         self.iptables_path = app.config.get('IPTABLES_PATH', '/sbin/iptables')
         self.ip6tables_path = app.config.get('IP6TABLES_PATH', '/sbin/ip6tables')
+        self.enabled = app.config.get('FIREWALL_ENABLED', True)
     
     def _run_command(self, command: List[str]) -> Tuple[bool, str]:
         """Executa comando do sistema e retorna resultado"""
+        if not self.enabled:
+            logger.info(f"[SIMULAÇÃO - FIREWALL DESLIGADO] Comando: {' '.join(command)}")
+            return True, '[Simulação] Comando não executado.'
         try:
             result = subprocess.run(
                 command,
@@ -218,6 +223,9 @@ class FirewallManager:
     
     def _save_iptables_rules(self) -> bool:
         """Salva as regras do iptables para persistir após reboot"""
+        if not self.enabled:
+            logger.info("[SIMULAÇÃO - FIREWALL DESLIGADO] Salvando regras do firewall (simulado)")
+            return True
         try:
             # Para Ubuntu/Debian, usar iptables-save
             commands = [
@@ -300,3 +308,53 @@ class FirewallManager:
             logger.info("Todas as regras da chain foram removidas")
         
         return success
+
+    def add_ip_to_blacklist(self, ip_address: str) -> bool:
+        """Adiciona IP à blacklist do firewall"""
+        logger.info(f"Adicionando IP {ip_address} à blacklist do firewall")
+        try:
+            ip_obj = ipaddress.ip_address(ip_address)
+            iptables_bin = self._get_iptables_binary(ip_address)
+            chain = current_app.config.get('FIREWALL_BLACK', 'BLACKLIST')
+            command = [iptables_bin, '-A', chain, '-s', ip_address, '-j', 'DROP']
+            success, output = self._run_command(command)
+            if success:
+                logger.info(f"IP {ip_address} adicionado com sucesso à blacklist")
+                self._save_iptables_rules()
+                return True
+            else:
+                logger.error(f"Falha ao adicionar IP {ip_address} à blacklist: {output}")
+                return False
+        except ValueError as e:
+            logger.error(f"IP inválido {ip_address}: {str(e)}")
+            return False
+        except Exception as e:
+            logger.error(f"Erro ao adicionar IP {ip_address} à blacklist: {str(e)}")
+            return False
+
+    def remove_ip_from_blacklist(self, ip_address: str) -> bool:
+        """Remove IP da blacklist do firewall"""
+        logger.info(f"Removendo IP {ip_address} da blacklist do firewall")
+        try:
+            ip_obj = ipaddress.ip_address(ip_address)
+            iptables_bin = self._get_iptables_binary(ip_address)
+            chain = current_app.config.get('FIREWALL_BLACK', 'BLACKLIST')
+            command = [iptables_bin, '-D', chain, '-s', ip_address, '-j', 'DROP']
+            success, output = self._run_command(command)
+            if success:
+                logger.info(f"IP {ip_address} removido com sucesso da blacklist")
+                self._save_iptables_rules()
+                return True
+            else:
+                if "No chain/target/match" in output or "does not exist" in output:
+                    logger.warning(f"Regra para IP {ip_address} não encontrada na blacklist")
+                    return True
+                else:
+                    logger.error(f"Falha ao remover IP {ip_address} da blacklist: {output}")
+                    return False
+        except ValueError as e:
+            logger.error(f"IP inválido {ip_address}: {str(e)}")
+            return False
+        except Exception as e:
+            logger.error(f"Erro ao remover IP {ip_address} da blacklist: {str(e)}")
+            return False

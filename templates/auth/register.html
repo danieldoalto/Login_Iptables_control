@@ -51,6 +51,7 @@
                     </div>
                     
                     <!-- Captcha -->
+                    {% if form.captcha_question.data != "Captcha desabilitado" %}
                     <div class="mb-3">
                         <div class="captcha-question">
                             {{ form.captcha_question.data }}
@@ -65,6 +66,7 @@
                             </div>
                         {% endif %}
                     </div>
+                    {% endif %}
                     
                     <div class="d-grid">
                         {{ form.submit(class="btn btn-primary") }}

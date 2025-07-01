@@ -4,7 +4,7 @@ Rotas principais da aplicação
 import logging
 from flask import Blueprint, render_template, session, request, redirect, url_for, flash, current_app
 from app import limiter
-from app.models import User, UserSession, SystemLog, db
+from app.models import User, UserSession, SystemLog, db, FirewallRule
 from datetime import datetime
 import os
 from sqlalchemy import text
@@ -171,6 +171,63 @@ def admin_pending_users():
     # Listar usuários pendentes
     pending_users = User.query.filter_by(status='pending').all()
     return render_template('admin/pending_users.html', user=user, pending_users=pending_users)
+
+@bp.route('/firewall_manager', methods=['GET', 'POST'])
+def firewall_manager():
+    """Card Firewall Manager: listar, adicionar e remover IPs liberados/bloqueados"""
+    if 'user_id' not in session:
+        flash('Você precisa fazer login para acessar esta página.', 'warning')
+        return redirect(url_for('auth.login'))
+    user = User.query.get(session['user_id'])
+    if not user or not user.is_admin():
+        flash('Acesso restrito ao administrador.', 'danger')
+        return redirect(url_for('main.dashboard'))
+
+    firewall_manager = current_app.firewall_manager
+    # Listar regras ativas
+    regras = FirewallRule.query.filter_by(is_active=True).order_by(FirewallRule.created_at.desc()).all()
+
+    if request.method == 'POST':
+        acao = request.form.get('acao')
+        ip = request.form.get('ip')
+        tipo = request.form.get('tipo')  # whitelist ou blacklist
+        chain = request.form.get('chain') or (firewall_manager.chain_name if tipo == 'whitelist' else current_app.config.get('FIREWALL_BLACK', 'BLACKLIST'))
+        if acao == 'adicionar' and ip and tipo:
+            # Adicionar IP
+            nova_regra = FirewallRule(
+                ip_address=ip,
+                user_id=user.id,
+                session_id=None,
+                tipo=tipo,
+                chain=chain,
+                is_active=True
+            )
+            db.session.add(nova_regra)
+            db.session.commit()
+            # Adicionar no iptables
+            if tipo == 'whitelist':
+                firewall_manager.add_ip_to_firewall(ip)
+            else:
+                firewall_manager.add_ip_to_blacklist(ip)
+            flash(f'IP {ip} adicionado à {tipo}.', 'success')
+            return redirect(url_for('main.firewall_manager'))
+        elif acao == 'remover' and ip:
+            # Remover IP
+            regra = FirewallRule.query.filter_by(ip_address=ip, is_active=True).first()
+            if regra:
+                regra.mark_as_removed()
+                db.session.commit()
+                # Remover do iptables
+                if regra.tipo == 'whitelist':
+                    firewall_manager.remove_ip_from_firewall(ip)
+                else:
+                    firewall_manager.remove_ip_from_blacklist(ip)
+                flash(f'IP {ip} removido da {regra.tipo}.', 'info')
+            else:
+                flash('Regra não encontrada.', 'warning')
+            return redirect(url_for('main.firewall_manager'))
+
+    return render_template('firewall_manager.html', user=user, regras=regras)
 
 @bp.errorhandler(404)
 def not_found_error(error):
