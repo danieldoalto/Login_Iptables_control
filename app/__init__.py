@@ -3,6 +3,7 @@ Aplicação Flask para sistema de login com gerenciamento de firewall
 """
 import os
 import logging
+import yaml
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_mail import Mail
@@ -36,6 +37,17 @@ def create_app(config_name=None):
                 template_folder=template_dir,
                 static_folder=static_dir)
     app.config.from_object(config[config_name])
+    
+    # Carregar configurações do dashboard do config.yml
+    config_yml_path = os.path.join(os.path.dirname(__file__), '..', 'config.yml')
+    try:
+        with open(config_yml_path, 'r') as f:
+            dashboard_config = yaml.safe_load(f)
+        app.config['DASHBOARD_CONFIG'] = dashboard_config
+        app.logger.info('Configurações do dashboard carregadas do config.yml')
+    except Exception as e:
+        app.logger.error(f'Erro ao carregar config.yml: {e}')
+        app.config['DASHBOARD_CONFIG'] = {}
     
     # Configurar logging primeiro
     from app.logging_config import setup_logging

@@ -1,0 +1,23 @@
+admin:
+  sections:
+    - status_do_sistema
+    - sua_sessao_atual
+    - logs_recentes
+    - acoes_rapidas
+  links:
+    - titulo: 'N8N'
+      link: 'https://n8n.dansoft.net.br'
+    - titulo: 'Webmin'
+      link: 'https://webmin.dansoft.net.br'
+    - titulo: 'Firewall'
+      link: 'ipt.dansoft.net.br'
+usuario:
+  sections:
+    - status_do_sistema
+    - sua_sessao_atual
+    - acoes_rapidas_usuario
+  links:
+    - titulo: 'Sistema de Captura de Documentos'
+      link: 'https://captura.dansoft.net.br'
+    - titulo: 'Sistema de Analise de Documentos'
+      link: 'https://analise.dansoft.net.br'

@@ -7,6 +7,7 @@ from app import limiter
 from app.models import User, UserSession, SystemLog, db
 from datetime import datetime
 import os
+from sqlalchemy import text
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +22,8 @@ def index():
     logger.info(f"Templates disponíveis: {os.listdir(current_app.template_folder)}")
     
     # Verificar se o arquivo existe
-    template_path = os.path.join(current_app.template_folder, 'index.html')
+    template_folder = current_app.template_folder or ''
+    template_path = os.path.join(template_folder, 'index.html')
     logger.info(f"Template path: {template_path}")
     logger.info(f"Arquivo existe: {os.path.exists(template_path)}")
     
@@ -62,12 +64,24 @@ def dashboard():
     recent_logs = SystemLog.query.filter_by(
         user_id=user.id
     ).order_by(SystemLog.created_at.desc()).limit(10).all()
-    
+
+    # Obter seções do dashboard a partir do config.yml
+    dashboard_config = current_app.config.get('DASHBOARD_CONFIG', {})
+    if hasattr(user, 'is_admin') and user.is_admin():
+        sections = dashboard_config.get('admin', {}).get('sections', [])
+    else:
+        sections = dashboard_config.get('usuario', {}).get('sections', [])
+
+    # Passar diretamente as seções como dashboard_sections
+    dashboard_sections = sections
+
     return render_template('dashboard.html', 
                          user=user, 
                          current_session=current_session,
                          active_sessions=active_sessions,
-                         recent_logs=recent_logs)
+                         recent_logs=recent_logs,
+                         dashboard_sections=dashboard_sections,
+                         dashboard_config=dashboard_config)
 
 @bp.route('/status')
 @limiter.limit("10 per minute")
@@ -75,14 +89,14 @@ def status():
     """Página de status do sistema"""
     try:
         # Verificar status do banco
-        db.session.execute('SELECT 1')
+        db.session.execute(text('SELECT 1'))
         db_status = 'OK'
     except Exception as e:
         db_status = f'Erro: {str(e)}'
     
     # Verificar status do firewall
     try:
-        firewall_manager = current_app.firewall_manager
+        firewall_manager = current_app.firewall_manager  # type: ignore[attr-defined]
         allowed_ips = firewall_manager.list_allowed_ips()
         firewall_status = f'OK - {len(allowed_ips)} IPs permitidos'
     except Exception as e:

@@ -1,6 +1,3 @@
-"""
-Configurações da aplicação Flask para sistema de login com firewall
-"""
 import os
 from datetime import timedelta
 

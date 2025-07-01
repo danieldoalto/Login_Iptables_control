@@ -10,10 +10,83 @@
     </div>
 </div>
 
-<div class="row">
-    <!-- Status do Sistema -->
-    <div class="col-md-4">
-        <div class="card">
+<div class="row justify-content-center">
+    <div class="col-12 col-md-8" style="max-width: 80vw;">
+
+        
+        {# ==== INÍCIO CARD LINKS ==== #}
+        {% set links = None %}
+        {% if user.is_admin() and dashboard_config['admin']['links'] %}
+            {% set links = dashboard_config['admin']['links'] %}
+        {% elif dashboard_config['usuario']['links'] %}
+            {% set links = dashboard_config['usuario']['links'] %}
+        {% endif %}
+        {% if links %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="bi bi-link-45deg"></i> Links</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    {% for item in links %}
+                    <li class="list-group-item">
+                        <a href="{{ item.link }}" target="_blank" rel="noopener noreferrer">
+                            <i class="bi bi-box-arrow-up-right"></i> {{ item.titulo }}
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+        {# ==== FIM CARD LINKS ==== #}
+
+        {# ==== INÍCIO CARD AÇÕES RÁPIDAS ==== #}
+        {% if 'acoes_rapidas' in dashboard_sections %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="bi bi-lightning"></i> Ações Rápidas</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('auth.account') }}" class="btn btn-outline-primary">
+                        <i class="bi bi-person-circle"></i> Minha Conta
+                    </a>
+                    <a href="{{ url_for('main.status') }}" class="btn btn-outline-info">
+                        <i class="bi bi-activity"></i> Status do Sistema
+                    </a>
+                    <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-danger">
+                        <i class="bi bi-box-arrow-right"></i> Sair
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        {# ==== FIM CARD AÇÕES RÁPIDAS ==== #}
+
+        {# ==== INÍCIO CARD AÇÕES RÁPIDAS USUÁRIO ==== #}
+        {% if 'acoes_rapidas_usuario' in dashboard_sections %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="bi bi-lightning"></i> Ações Rápidas Usuário</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('auth.account') }}" class="btn btn-outline-primary">
+                        <i class="bi bi-person-circle"></i> Minha Conta
+                    </a>
+                    <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-danger">
+                        <i class="bi bi-box-arrow-right"></i> Sair
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        {# ==== FIM CARD AÇÕES RÁPIDAS USUÁRIO ==== #}
+
+        {# ==== INÍCIO CARD STATUS DO SISTEMA ==== #}
+        {% if 'status_do_sistema' in dashboard_sections %}
+        <div class="card mb-4">
             <div class="card-header">
                 <h5><i class="bi bi-activity"></i> Status do Sistema</h5>
             </div>
@@ -36,11 +109,12 @@
                 </div>
             </div>
         </div>
-    </div>
+        {% endif %}
+        {# ==== FIM CARD STATUS DO SISTEMA ==== #}
 
-    <!-- Informações da Sessão -->
-    <div class="col-md-8">
-        <div class="card">
+        {# ==== INÍCIO CARD SESSÃO ATUAL ==== #}
+        {% if 'sua_sessao_atual' in dashboard_sections %}
+        <div class="card mb-4">
             <div class="card-header">
                 <h5><i class="bi bi-info-circle"></i> Sua Sessão Atual</h5>
             </div>
@@ -48,6 +122,9 @@
                 <div class="session-info">
                     <div class="row">
                         <div class="col-md-6">
+                            <p><strong>Nome:</strong> {{ user.nome or user.name or user.email }}</p>
+                            <p><strong>Email:</strong> {{ user.email }}</p>
+                            <p><strong>Último login:</strong> {% if user.last_login %}{{ user.last_login.strftime('%d/%m/%Y %H:%M') }}{% else %}Nunca{% endif %}</p>
                             <p><strong>IP:</strong> {{ current_session.ip_address }}</p>
                             <p><strong>Iniciada:</strong> {{ current_session.created_at.strftime('%d/%m/%Y %H:%M') }}</p>
                         </div>
@@ -66,13 +143,12 @@
                 </div>
             </div>
         </div>
-    </div>
-</div>
+        {% endif %}
+        {# ==== FIM CARD SESSÃO ATUAL ==== #}
 
-<div class="row mt-4">
-    <!-- Logs Recentes -->
-    <div class="col-md-6">
-        <div class="card">
+        {# ==== INÍCIO CARD LOGS RECENTES ==== #}
+        {% if 'logs_recentes' in dashboard_sections %}
+        <div class="card mb-4">
             <div class="card-header">
                 <h5><i class="bi bi-journal-text"></i> Logs Recentes</h5>
             </div>
@@ -103,37 +179,24 @@
                 </div>
             </div>
         </div>
-    </div>
+        {% endif %}
+        {# ==== FIM CARD LOGS RECENTES ==== #}
 
-    <!-- Ações Rápidas -->
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <h5><i class="bi bi-lightning"></i> Ações Rápidas</h5>
+        {# ==== INÍCIO CARD APROVAÇÃO DE USUÁRIOS ==== #}
+        {% if 'acoes_rapidas' in dashboard_sections and user.is_admin() %}
+        <div class="card mb-4 border-warning">
+            <div class="card-header bg-warning bg-opacity-25">
+                <h5 class="mb-0"><i class="bi bi-person-check"></i> Aprovação de Usuários</h5>
             </div>
             <div class="card-body">
-                <div class="d-grid gap-2">
-                    <a href="{{ url_for('auth.account') }}" class="btn btn-outline-primary">
-                        <i class="bi bi-person-circle"></i> Minha Conta
-                    </a>
-                    <a href="{{ url_for('main.status') }}" class="btn btn-outline-info">
-                        <i class="bi bi-activity"></i> Status do Sistema
-                    </a>
-                    <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-danger">
-                        <i class="bi bi-box-arrow-right"></i> Sair
-                    </a>
-                </div>
+                <a href="{{ url_for('main.admin_pending_users') }}" class="btn btn-warning btn-sm">
+                    Aprovar Usuários Pendentes
+                </a>
             </div>
         </div>
+        {% endif %}
+        {# ==== FIM CARD APROVAÇÃO DE USUÁRIOS ==== #}
+
     </div>
 </div>
-
-{% if user.is_admin() %}
-<div class="alert alert-info mb-4">
-    <i class="bi bi-person-check"></i>
-    <a href="{{ url_for('main.admin_pending_users') }}" class="btn btn-warning btn-sm ms-2">
-        Aprovar Usuários Pendentes
-    </a>
-</div>
-{% endif %}
 {% endblock %} 

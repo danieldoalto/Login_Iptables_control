@@ -6,6 +6,34 @@ Sistema de Login com Firewall desenvolvido em Flask, com autenticação web, con
 
 ---
 
+## Novidades e Customização do Dashboard
+
+- O dashboard agora é **dinâmico e configurável** via o arquivo `config.yml` na raiz do projeto.
+- As seções exibidas para o **administrador** e para o **usuário comum** são definidas neste arquivo, sem necessidade de alterar código Python ou HTML.
+- Os nomes das seções do dashboard agora correspondem aos nomes dos cards/janelas exibidos na interface. Os nomes padrão são:
+  - `status_do_sistema`
+  - `sua_sessao_atual`
+  - `logs_recentes`
+  - `acoes_rapidas`
+- Para alterar o que aparece no dashboard de cada perfil, edite o arquivo `config.yml`:
+
+```yaml
+admin:
+  sections:
+    - status_do_sistema
+    - sua_sessao_atual
+    - logs_recentes
+    - acoes_rapidas
+usuario:
+  sections:
+    - status_do_sistema
+    - sua_sessao_atual
+```
+- O sistema carrega essas configurações automaticamente ao iniciar. Basta adicionar ou remover nomes de cards no `config.yml` para personalizar o dashboard.
+- O template `dashboard.html` e o código Python usam esses nomes diretamente para exibir os cards.
+
+---
+
 ## Estrutura de Pastas e Arquivos
 
 ```
@@ -33,6 +61,7 @@ firewall_login_system/
 │   └── firewall_login.log
 ├── config/               # Configurações da aplicação
 │   └── config.py         # Classes de configuração (dev, prod, test)
+├── config.yml            # Configuração dinâmica do dashboard (seções por perfil)
 ├── .env                  # Variáveis de ambiente (senhas, email, configs)
 ├── requirements.txt      # Dependências do projeto
 ├── run.py                # Script para rodar a aplicação Flask
@@ -54,6 +83,7 @@ firewall_login_system/
 - Registra blueprints (rotas)
 - Configura logging, captcha, firewall
 - Carrega configurações do .env
+- **Carrega configurações do dashboard a partir do config.yml**
 
 ### app/models.py
 - Define os modelos do banco:
@@ -96,6 +126,15 @@ firewall_login_system/
 - Classes de configuração (Development, Production, Testing)
 - Lê variáveis do .env
 - Define caminhos de banco, email, logging, captcha, firewall, etc.
+
+### config.yml
+- Define as seções do dashboard para cada tipo de usuário (admin e comum)
+- Permite customização rápida da interface sem alterar código
+
+### requirements.txt
+- Lista todas as dependências do projeto
+- **Inclui agora o pacote PyYAML** para leitura do config.yml:
+  - `PyYAML==6.0.1`
 
 ### run.py
 - Script principal para rodar a aplicação Flask

@@ -137,10 +137,28 @@ http://localhost:5000
 ## 📊 Funcionalidades
 
 ### Dashboard
-- Visualização de sessões ativas
-- Logs do sistema
-- Status do firewall
-- Gerenciamento de conta
+- Os cards exibidos no dashboard são configuráveis via o arquivo `config.yml`.
+- Basta editar o `config.yml` e listar os nomes dos cards desejados para cada perfil (admin ou usuário).
+- Os nomes padrão dos cards são:
+  - `status_do_sistema`
+  - `sua_sessao_atual`
+  - `logs_recentes`
+  - `acoes_rapidas`
+- Exemplo de configuração:
+
+```yaml
+admin:
+  sections:
+    - status_do_sistema
+    - sua_sessao_atual
+    - logs_recentes
+    - acoes_rapidas
+usuario:
+  sections:
+    - status_do_sistema
+    - sua_sessao_atual
+```
+- Não é necessário alterar código Python ou HTML para mudar os cards do dashboard.
 
 ### Segurança
 - Hash de senhas com bcrypt
